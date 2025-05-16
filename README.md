@@ -19,10 +19,11 @@ A machine learning application for real-time human pose detection, 3D visualizat
 
 ## Installation
 
-### 1. Clone the repository
+### 1. Clone this Repository on your PC 
+
 ```bash
 git clone <repository-url>
-cd human-pose-detection
+cd human_pose_detection
 ```
 
 ### 2. Run the setup script
