@@ -1,3 +1,6 @@
+// To install the YOLOV Model and structure the siles as per the requirement (Only required when necessary)
+/*
+
 from setuptools import setup, find_packages
 import os
 import torch
@@ -113,3 +116,4 @@ def post_install():
 
 if __name__ == '__main__':
     post_install()
+*/
