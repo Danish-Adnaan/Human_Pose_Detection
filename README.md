@@ -105,10 +105,6 @@ The system uses:
 - For slower devices, try closing other applications to free up resources
 - The application automatically adjusts processing parameters based on available resources
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ## Acknowledgments
 
 - YOLOv8 by Ultralytics
