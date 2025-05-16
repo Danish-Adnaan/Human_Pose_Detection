@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YoloV8 Keypoint Pose Classification</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Three.js Libraries - Updated with specific versions -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/loaders/FontLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.132.2/examples/js/geometries/TextGeometry.js"></script>
+    <style>
+        .demo-mode-banner {
+            background-color: #ff5252;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        
+        /* Add specific styles for 3D visualization */
+        #pose-3d {
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pose-3d-instructions {
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            font-size: 12px;
+            text-align: center;
+        }
+        
+        .additional-confidence {
+            margin-top: 5px;
+            font-size: 0.9em;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>YoloV8 Keypoint Pose Classification</h1>
+            <p class="subtitle">Human Pose Detection & Classification System</p>
+        </header>
+
+        {% if demo_mode %}
+        <div class="demo-mode-banner">
+            <i class="fas fa-exclamation-triangle"></i> DEMO MODE: Some dependencies are missing. 
+            Limited functionality available. Please install required packages for full experience.
+        </div>
+        {% endif %}
+
+        <!-- Mode Selector Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="image">
+                <i class="fas fa-image"></i> Image
+            </button>
+            <button class="tab-btn" data-tab="webcam">
+                <i class="fas fa-camera"></i> Webcam
+            </button>
+        </div>
+
+        <!-- Image Mode -->
+        <div class="tab-content active" id="image-tab">
+            <div class="upload-container">
+                <div class="upload-box" id="image-dropzone">
+                    <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                    <h3>Upload Image</h3>
+                    <p>Drag and drop image here</p>
+                    <p class="file-info">Supported formats: PNG, JPG, JPEG</p>
+                    <button class="browse-btn" id="image-browse">Browse files</button>
+                    <input type="file" id="image-upload" accept="image/*" hidden>
+                </div>
+            </div>
+
+            <div class="display-area" id="image-display" style="display: none;">
+                <div class="canvas-grid">
+                    <div class="canvas-box">
+                        <h4>Original Image</h4>
+                        <img id="original-image" src="" alt="Original Image">
+                    </div>
+                    <div class="canvas-box">
+                        <h4>Pose Detection</h4>
+                        <img id="detection-image" src="" alt="Pose Detection">
+                    </div>
+                    <div class="canvas-box">
+                        <h4>3D Visualization</h4>
+                        <div id="pose-3d"></div>
+                        <div class="pose-3d-controls">
+                            <button id="toggle-rotate" title="Toggle Auto-Rotation">
+                                <i class="fas fa-sync-alt"></i> Auto-Rotate
+                            </button>
+                            <button id="reset-view" title="Reset View">
+                                <i class="fas fa-home"></i> Reset View
+                            </button>
+                        </div>
+                        <div class="pose-3d-instructions">
+                            <p>Drag to rotate | Scroll to zoom | Shift+Drag to pan</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-user"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Detected People</span>
+                            <span id="image-pose" class="stat-value">-</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Confidence</span>
+                            <span id="image-confidence" class="stat-value">0%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Performance</span>
+                            <span id="processing-time" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Webcam Mode -->
+        <div class="tab-content" id="webcam-tab">
+            <div class="webcam-controls">
+                <button id="start-webcam" class="control-btn">
+                    <i class="fas fa-play"></i> Start Camera
+                </button>
+                <button id="stop-webcam" class="control-btn" style="display: none;">
+                    <i class="fas fa-stop"></i> Stop Camera
+                </button>
+            </div>
+
+            <div class="display-area" id="webcam-display">
+                <div class="webcam-grid">
+                    <div class="webcam-box">
+                        <h4>Live Feed</h4>
+                        <img id="webcam-feed" src="" style="display: none;" alt="Webcam Feed">
+                    </div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-tachometer-alt"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">FPS</span>
+                            <span id="webcam-fps" class="stat-value">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-user"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Detected People</span>
+                            <span id="webcam-pose" class="stat-value">-</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Confidence</span>
+                            <span id="webcam-confidence" class="stat-value">0%</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-clock"></i></div>
+                        <div class="stat-info">
+                            <span class="stat-label">Performance</span>
+                            <span id="webcam-processing-time" class="stat-value">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Human Pose Detection & Classification System | YOLOv8m</p>
+        </footer>
+    </div>
+
+    <!-- Include the pose3d.js script before main.js -->
+    <script src="{{ url_for('static', filename='js/pose3d.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <script>
+    function updateStats() {
+        fetch('/performance_stats')
+            .then(response => response.json())
+            .then(data => {
+                // Update webcam stats
+                document.getElementById('webcam-fps').textContent = `${data.fps.toFixed(1)}`;
+                document.getElementById('webcam-pose').textContent = data.detected_pose;
+                document.getElementById('webcam-confidence').textContent = `${data.confidence.toFixed(1)}%`;
+                document.getElementById('webcam-processing-time').textContent = `${data.processing_time.toFixed(1)}ms`;
+                
+                // Update image stats if in image mode
+                if (document.getElementById('image-tab').classList.contains('active')) {
+                    document.getElementById('image-pose').textContent = data.detected_pose;
+                    document.getElementById('image-confidence').textContent = `${data.confidence.toFixed(1)}%`;
+                    document.getElementById('processing-time').textContent = `${data.processing_time.toFixed(1)}ms`;
+                }
+            })
+            .catch(error => console.error('Error fetching stats:', error));
+    }
+
+    // Update stats every 100ms for smoother display
+    setInterval(updateStats, 100);
+    </script>
+</body>
+</html> 
