@@ -1,6 +1,3 @@
-# Human_Pose_Detection
-Using YoloV8m Model (Light Weight)
-
 # Human Pose Detection & Classification System
 
 A machine learning application for real-time human pose detection, 3D visualization, and pose classification using YOLOv8 and custom ML models.
